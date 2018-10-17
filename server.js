@@ -4,26 +4,40 @@ var connection = require('./database.js');
 var mongodb = require('mongodb');
 
 var app = express();
-app.use(bodyParser.json())
+// app.use(bodyParser.urlencoded({extended:true}));
+app.use(bodyParser.json());
 var fs = require("fs");
+
+function getNextSequence(name){
+    var ret = connection.get(function(client){
+        client.collection('counters').findAndModify({
+            query:{_id:name},
+            update:{$inc:{seq:1}},
+            new:true
+        });
+        return ret.seq;
+    })
+}
 
 app.get('/listUsers', function (req, res) {
    connection.get(function(client){
        client.collection('users').find({}).toArray(function(err, result){
           if (err) throw err;
-          console.log(result);
           res.end(JSON.stringify(result));
        });
    });
 })
 
-app.get('/addUser', function(req,res){
-    fs.readFile( __dirname + "/" + "users.json", "utf8", function (err, data) {
-        data = JSON.parse(data);
-        
-        res.end( data );
+app.post('/addUser', function(req,res){
+    connection.get(function(client){
+        client.collection('users').insertOne(req.body.user, function(err,result){
+           if (err) throw err;
+           res.end("1 document inserted"); 
+        })
     });
-})
+});
+
+
 var server = app.listen(8081, function () {
 
   var host = server.address().address
