@@ -4,6 +4,11 @@ var connection = require('./database.js')
 
 var app = express()
 app.use(bodyParser.json())
+app.use(function (req, res, next) {
+  res.header('Access-Control-Allow-Origin', '*')
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept')
+  next()
+})
 
 app.get('/listUsers', function (req, res) {
   connection.get(function (client) {
@@ -24,23 +29,45 @@ app.post('/addUser', function (req, res) {
 })
 
 app.post('/timeEvent', function (req, res) {
+  console.log('inserting event')
+  console.log(req.body)
   connection.get(function (client) {
-    client.collection('timeEvents').insertOne(req.body.timeEvent, function (err, result) {
+    client.collection('timeEvents').insertOne(req.body, function (err, result) {
       if (err) throw err
       res.end('Time event added')
     })
   })
 })
 
+app.get('/userEvents', function (req, res) {
+  connection.get(function (client) {
+    client.collection('timeEvents').find({ 'user': req.query.id })
+      .toArray(function (err, result) {
+        if (err) throw err
+        res.end(JSON.stringify(result))
+      })
+  })
+})
+
 app.post('/authenticate', function (req, res) {
+  console.log('attempting auth')
   console.log('request body', req.body)
   connection.get(function (client) {
     client.collection('users')
       .findOne({ 'name': req.body.username, 'password': req.body.password },
         function (err, result) {
-          if (err) throw err
-          delete result.password
-          res.end(JSON.stringify(result))
+          if (err) {
+            res.end(JSON.stringify({ success: false, message: 'Error talking to db' }))
+          } else {
+            if (result !== null) {
+              result.success = true
+              delete result.password
+              console.log(result)
+              res.end(JSON.stringify(result))
+            } else {
+              res.end(JSON.stringify({ success: false, message: 'Invalid username or password.' }))
+            }
+          }
         })
   })
 })
