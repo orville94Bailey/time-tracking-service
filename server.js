@@ -40,12 +40,12 @@ app.post('/timeEvent', function (req, res) {
 })
 
 app.get('/userEvents', function (req, res) {
+  console.log('sending events')
   connection.get(function (client) {
-    client.collection('timeEvents').find({ 'user': req.query.id })
-      .toArray(function (err, result) {
-        if (err) throw err
-        res.end(JSON.stringify(result))
-      })
+    var timeEvents = client.collection('timeEvents').find({ 'user': req.query.id })
+      .toArray()
+    console.log(timeEvents)
+    res.end(JSON.stringify(timeEvents))
   })
 })
 
